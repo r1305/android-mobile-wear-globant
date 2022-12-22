@@ -4,18 +4,26 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.TaskStackBuilder
+import android.content.ContentValues.TAG
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.android.gms.wearable.DataClient
+import com.google.android.gms.wearable.DataEvent
+import com.google.android.gms.wearable.DataEventBuffer
+import com.google.android.gms.wearable.Wearable
 import kotlin.random.Random
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), DataClient.OnDataChangedListener {
+
+    private val dataEvents = arrayListOf<DataEvent>()
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,5 +71,25 @@ class MainActivity : AppCompatActivity() {
             stackBuilder.getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE)
         builder.setContentIntent(resultPendingIntent)
         notificationManager.notify(notification_id, builder.build())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Wearable.getDataClient(this).addListener(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Wearable.getDataClient(this).removeListener(this)
+    }
+
+    override fun onDataChanged(p0: DataEventBuffer) {
+        dataEvents.forEach { event ->
+            if (event.type == DataEvent.TYPE_DELETED) {
+                Log.d(TAG, "DataItem deleted: " + event.dataItem.uri)
+            } else if (event.type == DataEvent.TYPE_CHANGED) {
+                Log.d(TAG, "DataItem changed: " + event.dataItem.uri)
+            }
+        }
     }
 }
